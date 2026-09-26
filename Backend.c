@@ -9,6 +9,7 @@
 #define BUFFER_SIZE 8192
 #define MAX_ITEMS 100
 
+// Product structure
 typedef struct {
     char name[64];
     char sku[32];
@@ -20,6 +21,7 @@ typedef struct {
 Product inventory[MAX_ITEMS];
 int product_count = 0;
 
+// Initialize mock inventory data
 void init_data() {
     strcpy(inventory[0].name, "Steel Rod 10mm");
     strcpy(inventory[0].sku, "STL-100");
@@ -31,11 +33,18 @@ void init_data() {
     strcpy(inventory[1].sku, "CHR-200");
     strcpy(inventory[1].category, "Furniture");
     strcpy(inventory[1].location, "Rack B");
-    inventory[1].quantity = 25;
+    inventory[1].quantity = 5; // Triggers Low Stock KPI
 
-    product_count = 2;
+    strcpy(inventory[2].name, "Plastic Bucket");
+    strcpy(inventory[2].sku, "PB-300");
+    strcpy(inventory[2].category, "Container");
+    strcpy(inventory[2].location, "Warehouse 2");
+    inventory[2].quantity = 0; // Triggers Out of Stock KPI
+
+    product_count = 3;
 }
 
+// Send HTTP response with mandatory CORS headers
 void send_response(int client_fd, const char *status, const char *content_type, const char *body) {
     char header[1024];
     int body_len = strlen(body);
@@ -53,6 +62,7 @@ void send_response(int client_fd, const char *status, const char *content_type, 
     send(client_fd, body, body_len, 0);
 }
 
+// Basic JSON value extractor
 void extract_json_val(const char *json, const char *key, char *out_val) {
     char search_key[64];
     snprintf(search_key, sizeof(search_key), "\"%s\":", key);
@@ -69,6 +79,7 @@ void extract_json_val(const char *json, const char *key, char *out_val) {
     out_val[i] = '\0';
 }
 
+// GET /api/dashboard
 void handle_dashboard(int client_fd) {
     char json_body[4096];
     int pos = snprintf(json_body, sizeof(json_body), "{\"inventory\":[");
@@ -85,6 +96,7 @@ void handle_dashboard(int client_fd) {
     send_response(client_fd, "200 OK", "application/json", json_body);
 }
 
+// POST /api/products
 void handle_add_product(int client_fd, const char *body) {
     if (product_count < MAX_ITEMS) {
         Product p;
@@ -101,6 +113,7 @@ void handle_add_product(int client_fd, const char *body) {
     }
 }
 
+// POST /api/stock/update
 void handle_stock_update(int client_fd, const char *body) {
     char sku[32], qty_str[16];
     extract_json_val(body, "sku", sku);
@@ -124,6 +137,7 @@ void handle_stock_update(int client_fd, const char *body) {
     }
 }
 
+// POST /api/operations
 void handle_operation(int client_fd, const char *body) {
     char type[32], sku[32], from[32], to[32], qty_str[16];
     extract_json_val(body, "type", type);
@@ -161,6 +175,7 @@ int main() {
 
     init_data();
 
+    // Socket creation
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Socket failed");
         exit(EXIT_FAILURE);
@@ -172,11 +187,13 @@ int main() {
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
+    // Socket binding
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
         exit(EXIT_FAILURE);
     }
 
+    // Listen on socket
     if (listen(server_fd, 10) < 0) {
         perror("Listen failed");
         exit(EXIT_FAILURE);
@@ -191,6 +208,7 @@ int main() {
         memset(buffer, 0, BUFFER_SIZE);
         read(client_fd, buffer, BUFFER_SIZE - 1);
 
+        // CORS preflight handling
         if (strncmp(buffer, "OPTIONS", 7) == 0) {
             send_response(client_fd, "200 OK", "text/plain", "");
         } 
