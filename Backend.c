@@ -9,7 +9,6 @@
 #define BUFFER_SIZE 8192
 #define MAX_ITEMS 100
 
-// Data structures
 typedef struct {
     char name[64];
     char sku[32];
@@ -21,7 +20,6 @@ typedef struct {
 Product inventory[MAX_ITEMS];
 int product_count = 0;
 
-// Pre-fill initial mock data
 void init_data() {
     strcpy(inventory[0].name, "Steel Rod 10mm");
     strcpy(inventory[0].sku, "STL-100");
@@ -38,7 +36,6 @@ void init_data() {
     product_count = 2;
 }
 
-// Helper to send HTTP responses with CORS headers
 void send_response(int client_fd, const char *status, const char *content_type, const char *body) {
     char header[1024];
     int body_len = strlen(body);
@@ -56,7 +53,6 @@ void send_response(int client_fd, const char *status, const char *content_type, 
     send(client_fd, body, body_len, 0);
 }
 
-// Simple JSON parser helper
 void extract_json_val(const char *json, const char *key, char *out_val) {
     char search_key[64];
     snprintf(search_key, sizeof(search_key), "\"%s\":", key);
@@ -105,7 +101,6 @@ void handle_add_product(int client_fd, const char *body) {
     }
 }
 
-// Direct stock update handler
 void handle_stock_update(int client_fd, const char *body) {
     char sku[32], qty_str[16];
     extract_json_val(body, "sku", sku);
@@ -166,26 +161,22 @@ int main() {
 
     init_data();
 
-    // Create socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Socket failed");
         exit(EXIT_FAILURE);
     }
 
-    // Set socket options
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Bind socket
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
         exit(EXIT_FAILURE);
     }
 
-    // Listen
     if (listen(server_fd, 10) < 0) {
         perror("Listen failed");
         exit(EXIT_FAILURE);
@@ -200,27 +191,22 @@ int main() {
         memset(buffer, 0, BUFFER_SIZE);
         read(client_fd, buffer, BUFFER_SIZE - 1);
 
-        // Handle OPTIONS preflight request for CORS
         if (strncmp(buffer, "OPTIONS", 7) == 0) {
             send_response(client_fd, "200 OK", "text/plain", "");
         } 
-        // Route GET /api/dashboard
         else if (strstr(buffer, "GET /api/dashboard")) {
             handle_dashboard(client_fd);
         } 
-        // Route POST /api/products
         else if (strstr(buffer, "POST /api/products")) {
             char *body = strstr(buffer, "\r\n\r\n");
             if (body) body += 4;
             handle_add_product(client_fd, body ? body : "");
         } 
-        // Route POST /api/stock/update
         else if (strstr(buffer, "POST /api/stock/update")) {
             char *body = strstr(buffer, "\r\n\r\n");
             if (body) body += 4;
             handle_stock_update(client_fd, body ? body : "");
         }
-        // Route POST /api/operations
         else if (strstr(buffer, "POST /api/operations")) {
             char *body = strstr(buffer, "\r\n\r\n");
             if (body) body += 4;
