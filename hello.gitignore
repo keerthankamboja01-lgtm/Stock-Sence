@@ -1,0 +1,5 @@
+server
+*.out
+*.o
+.DS_Store
+.vscode/
