@@ -17,12 +17,13 @@
       --border-color: #e2e8f0;
       --success: #16a34a;
       --warning: #d97706;
+      --danger: #dc2626;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { background-color: var(--bg-slate); color: var(--text-main); padding: 24px; max-width: 1200px; margin: 0 auto; }
 
-    /* Professional Top Navigation Header */
+    /* Top Navigation Header */
     .header-bar {
       display: flex;
       justify-content: space-between;
@@ -38,7 +39,15 @@
     .auth-container { display: flex; align-items: center; gap: 12px; }
     .user-info { font-weight: 500; font-size: 0.9rem; color: var(--success); display: none; }
 
-    /* Dashboard Cards Layout */
+    /* KPI Cards Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .kpi-card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-card .value { font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
+    .kpi-card.warning .value { color: var(--warning); }
+    .kpi-card.danger .value { color: var(--danger); }
+
+    /* Section Cards Layout */
     .card {
       background: var(--card-bg);
       border-radius: 12px;
@@ -47,16 +56,26 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       margin-bottom: 24px;
     }
-    .card h2 { font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+    .card h2 { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }
 
     /* Main Grid for Forms */
     .forms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+
+    /* Search Bar Input */
+    .search-bar { width: 260px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; margin-bottom: 0; }
 
     /* Table Styling */
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
     th { background-color: #f1f5f9; color: var(--text-muted); font-weight: 600; padding: 12px; border-bottom: 1px solid var(--border-color); }
     td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
     tr:hover { background-color: #f8fafc; }
+
+    /* Status Badges */
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .badge-success { background: #dcfce7; color: var(--success); }
+    .badge-warning { background: #fef3c7; color: var(--warning); }
+    .badge-danger { background: #fee2e2; color: var(--danger); }
 
     /* Form Controls & Inputs */
     label { display: block; font-size: 0.825rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
@@ -68,7 +87,6 @@
       border-radius: 6px;
       font-size: 0.9rem;
       background-color: #fff;
-      transition: border-color 0.15s ease-in-out;
     }
     input:focus, select:focus { outline: none; border-color: var(--primary); }
 
@@ -82,7 +100,6 @@
       font-weight: 600;
       font-size: 0.9rem;
       cursor: pointer;
-      transition: background-color 0.15s ease-in-out;
     }
     button:hover { background-color: var(--primary-hover); }
     .btn-edit { background-color: var(--warning); padding: 6px 12px; font-size: 0.8rem; width: auto; margin: 0; }
@@ -92,7 +109,7 @@
 </head>
 <body>
 
-  <!-- TOP HEADER WITH AUTHENTICATION -->
+  <!-- TOP NAVIGATION HEADER -->
   <div class="header-bar">
     <div class="brand-title">📦 StockSense IMS</div>
     <div class="auth-container">
@@ -105,9 +122,32 @@
     </div>
   </div>
 
-  <!-- 1ST POSITION: INVENTORY OVERVIEW TABLE -->
+  <!-- KPI METRICS SUMMARY -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <h3>Total Products</h3>
+      <div class="value" id="kpi-total">0</div>
+    </div>
+    <div class="kpi-card">
+      <h3>Total Units</h3>
+      <div class="value" id="kpi-units">0</div>
+    </div>
+    <div class="kpi-card warning">
+      <h3>Low Stock Alert</h3>
+      <div class="value" id="kpi-low">0</div>
+    </div>
+    <div class="kpi-card danger">
+      <h3>Out of Stock</h3>
+      <div class="value" id="kpi-out">0</div>
+    </div>
+  </div>
+
+  <!-- INVENTORY OVERVIEW TABLE -->
   <div class="card">
-    <h2>1. Inventory Overview (Stock Levels per Location)</h2>
+    <div class="card-header">
+      <h2>1. Inventory Overview (Stock Levels per Location)</h2>
+      <input type="text" id="searchInput" class="search-bar" placeholder="🔍 Search SKU or Name..." onkeyup="filterTable()">
+    </div>
     <table>
       <thead>
         <tr>
@@ -115,6 +155,7 @@
           <th>Name</th>
           <th>Category</th>
           <th>Location</th>
+          <th>Status</th>
           <th>Current Quantity</th>
           <th>Action</th>
         </tr>
@@ -174,6 +215,7 @@
 
   <script>
     const API = "http://localhost:8080/api";
+    let globalInventory = [];
 
     // 1. Fetch current inventory from C backend
     async function loadInventory() {
@@ -181,31 +223,78 @@
         const res = await fetch(`${API}/dashboard`);
         const data = await res.json();
         
-        const tbody = document.getElementById('inventoryTable');
-        tbody.innerHTML = '';
-        
-        (data.inventory || []).forEach(item => {
-          tbody.innerHTML += `
-            <tr>
-              <td><strong>${item.sku}</strong></td>
-              <td>${item.name}</td>
-              <td>${item.category}</td>
-              <td>${item.location}</td>
-              <td>
-                <input type="number" class="qty-input" id="qty-${item.sku}" value="${item.quantity}" min="0">
-              </td>
-              <td>
-                <button class="btn-edit" onclick="updateStockDirect('${item.sku}')">Save Stock</button>
-              </td>
-            </tr>
-          `;
-        });
+        globalInventory = data.inventory || [];
+        updateKPIs(globalInventory);
+        renderTable(globalInventory);
       } catch (err) {
         console.log("Could not fetch data from server.", err);
       }
     }
 
-    // 2. Direct stock update handler
+    // 2. Compute and display KPI stats
+    function updateKPIs(items) {
+      let totalUnits = 0;
+      let lowStockCount = 0;
+      let outOfStockCount = 0;
+
+      items.forEach(item => {
+        totalUnits += item.quantity;
+        if (item.quantity === 0) outOfStockCount++;
+        else if (item.quantity <= 10) lowStockCount++;
+      });
+
+      document.getElementById('kpi-total').innerText = items.length;
+      document.getElementById('kpi-units').innerText = totalUnits;
+      document.getElementById('kpi-low').innerText = lowStockCount;
+      document.getElementById('kpi-out').innerText = outOfStockCount;
+    }
+
+    // 3. Render table rows with stock status badges
+    function renderTable(items) {
+      const tbody = document.getElementById('inventoryTable');
+      tbody.innerHTML = '';
+      
+      items.forEach(item => {
+        let badgeClass = 'badge-success';
+        let badgeText = 'In Stock';
+
+        if (item.quantity === 0) {
+          badgeClass = 'badge-danger';
+          badgeText = 'Out of Stock';
+        } else if (item.quantity <= 10) {
+          badgeClass = 'badge-warning';
+          badgeText = 'Low Stock';
+        }
+
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${item.sku}</strong></td>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.location}</td>
+            <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+            <td>
+              <input type="number" class="qty-input" id="qty-${item.sku}" value="${item.quantity}" min="0">
+            </td>
+            <td>
+              <button class="btn-edit" onclick="updateStockDirect('${item.sku}')">Save Stock</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // 4. Live search filter
+    function filterTable() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = globalInventory.filter(item => 
+        item.name.toLowerCase().includes(query) || 
+        item.sku.toLowerCase().includes(query)
+      );
+      renderTable(filtered);
+    }
+
+    // 5. Direct stock update handler
     async function updateStockDirect(sku) {
       const newQty = parseInt(document.getElementById(`qty-${sku}`).value);
       if (isNaN(newQty) || newQty < 0) {
@@ -213,10 +302,7 @@
         return;
       }
 
-      const payload = {
-        sku: sku,
-        quantity: newQty
-      };
+      const payload = { sku: sku, quantity: newQty };
 
       try {
         const res = await fetch(`${API}/stock/update`, {
@@ -234,7 +320,7 @@
       }
     }
 
-    // 3. Add Product submit handler
+    // 6. Add Product submit handler
     document.getElementById('productForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = {
@@ -254,7 +340,7 @@
       loadInventory();
     });
 
-    // 4. Record Operation submit handler
+    // 7. Record Operation submit handler
     document.getElementById('opForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = {
@@ -276,7 +362,7 @@
       loadInventory();
     });
 
-    // 5. Google OAuth Callback
+    // 8. Google OAuth Callback
     function parseJwt(token) {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
