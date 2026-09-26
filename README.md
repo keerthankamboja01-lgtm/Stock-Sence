@@ -1,2 +1,5 @@
-# Stock-Sence
-Odoo Hackathon 2026 x GCET
+# Compile & run C backend
+gcc server.c -o server
+./server
+
+# Serve frontend (open index.html or use a local static server)
