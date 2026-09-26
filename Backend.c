@@ -56,7 +56,7 @@ void send_response(int client_fd, const char *status, const char *content_type, 
     send(client_fd, body, body_len, 0);
 }
 
-// Simple JSON parser helpers
+// Simple JSON parser helper
 void extract_json_val(const char *json, const char *key, char *out_val) {
     char search_key[64];
     snprintf(search_key, sizeof(search_key), "\"%s\":", key);
@@ -102,6 +102,30 @@ void handle_add_product(int client_fd, const char *body) {
         send_response(client_fd, "200 OK", "application/json", "{\"status\":\"success\"}");
     } else {
         send_response(client_fd, "400 Bad Request", "application/json", "{\"status\":\"full\"}");
+    }
+}
+
+// Direct stock update handler
+void handle_stock_update(int client_fd, const char *body) {
+    char sku[32], qty_str[16];
+    extract_json_val(body, "sku", sku);
+    extract_json_val(body, "quantity", qty_str);
+
+    int new_qty = atoi(qty_str);
+    int found = 0;
+
+    for (int i = 0; i < product_count; i++) {
+        if (strcmp(inventory[i].sku, sku) == 0) {
+            inventory[i].quantity = new_qty;
+            found = 1;
+            break;
+        }
+    }
+
+    if (found) {
+        send_response(client_fd, "200 OK", "application/json", "{\"status\":\"updated\"}");
+    } else {
+        send_response(client_fd, "404 Not Found", "application/json", "{\"status\":\"sku_not_found\"}");
     }
 }
 
@@ -190,6 +214,12 @@ int main() {
             if (body) body += 4;
             handle_add_product(client_fd, body ? body : "");
         } 
+        // Route POST /api/stock/update
+        else if (strstr(buffer, "POST /api/stock/update")) {
+            char *body = strstr(buffer, "\r\n\r\n");
+            if (body) body += 4;
+            handle_stock_update(client_fd, body ? body : "");
+        }
         // Route POST /api/operations
         else if (strstr(buffer, "POST /api/operations")) {
             char *body = strstr(buffer, "\r\n\r\n");
